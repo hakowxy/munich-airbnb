@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Munich Airbnb &amp; Oktoberfest</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="The Oktoberfest price premium on Munich's Airbnb market, and what guests say in German, English, French and Chinese. Built by Xinyang Ma.">
+<script src="vendor/plotly-4.1.1.min.js"></script>
+<style>
+  :root {
+    --bg: #f7f6f3; --card: #ffffff; --text: #111827; --muted: #6b7280; --border: #e7e5e0;
+    --accent: #b45309; --accent-soft: #fdf3e2; --blue: #1d4ed8; --grid: #efede8; --light: #d6d3cc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212; --card: #1b1b1b; --text: #ece9e3; --muted: #a3a09a; --border: #2c2b29;
+      --accent: #f59e0b; --accent-soft: #33260f; --blue: #60a5fa; --grid: #262523; --light: #4a4844;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121212; --card: #1b1b1b; --text: #ece9e3; --muted: #a3a09a; --border: #2c2b29;
+    --accent: #f59e0b; --accent-soft: #33260f; --blue: #60a5fa; --grid: #262523; --light: #4a4844;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 16px 40px; }
+  header h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); max-width: 800px; }
+  a { color: var(--accent); text-decoration: none; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0 12px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+  .kpi .label { color: var(--muted); font-size: 12px; }
+  .kpi .value { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; margin-top: 2px; }
+  .kpi .value.accent { color: var(--accent); }
+  .kpi .note { font-size: 12px; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .card h2 { font-size: 14px; margin: 0 0 2px; }
+  .card .sub { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+  .toggle { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 6px; }
+  .toggle button { font: inherit; font-size: 12px; border: 0; background: var(--card); color: var(--text); padding: 5px 12px; cursor: pointer; }
+  .toggle button + button { border-left: 1px solid var(--border); }
+  .toggle button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  #map { width: 100%; height: 380px; }
+  #occ { width: 100%; height: 250px; }
+  #themes { width: 100%; height: 330px; }
+  #mix { width: 100%; height: 330px; }
+  .form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .form label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 2px; }
+  .form .full { grid-column: 1 / -1; }
+  select { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; width: 100%; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .prices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .price { border-radius: 10px; padding: 12px 14px; background: var(--bg); }
+  .price.wiesn { background: var(--accent-soft); }
+  .price .t { font-size: 12px; color: var(--muted); }
+  .price .v { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .price.wiesn .v { color: var(--accent); }
+  .fine { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .langs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .langs label { font-size: 12px; border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; cursor: pointer; user-select: none; }
+  .langs input { display: none; }
+  .langs label:has(input:checked) { border-color: currentColor; font-weight: 600; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 18px; }
+  footer a { color: var(--muted); text-decoration: underline; }
+  @media (max-width: 860px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .grid { grid-template-columns: 1fr; }
+    .kpi .value { font-size: 22px; }
+    #map { height: 320px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Munich on Airbnb: the Oktoberfest premium</h1>
+    <p>Every Munich listing, scraped mid-Oktoberfest on 25-26 September 2026, plus 249,000 guest reviews.
+      Explore the districts, see how full the city gets, estimate what a place earns, and compare what guests notice in four languages.
+      Full analysis in the <a href="https://github.com/hakowxy/munich-airbnb">GitHub repo</a>.</p>
+  </header>
+
+  <div class="kpis">
+    <div class="card kpi"><div class="label">Oktoberfest price premium</div><div class="value accent" id="k-premium"></div><div class="note">Like-for-like, vs October-November</div></div>
+    <div class="card kpi"><div class="label">Last Oktoberfest nights unavailable</div><div class="value" id="k-occ"></div><div class="note" id="n-occ"></div></div>
+    <div class="card kpi"><div class="label">Active listings</div><div class="value" id="k-active"></div><div class="note" id="n-active"></div></div>
+    <div class="card kpi"><div class="label">Reviews analysed</div><div class="value" id="k-reviews"></div><div class="note">German, English, French, Chinese + more</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Districts</h2>
+      <p class="sub">Hover a district for details</p>
+      <div class="toggle" id="map-toggle">
+        <button data-k="active_listings">Active listings</button>
+        <button data-k="normal_price">Typical price (Oct-Nov)</button>
+        <button data-k="entire_share">Whole-flat share</button>
+      </div>
+      <div id="map"></div>
+    </div>
+
+    <div class="card">
+      <h2>What would a place earn?</h2>
+      <p class="sub">Estimated nightly price from the regression in the analysis</p>
+      <div class="form">
+        <div class="full"><label for="c-district">District</label><select id="c-district"></select></div>
+        <div><label for="c-type">Type</label><select id="c-type"><option>Entire home/apt</option><option>Private room</option></select></div>
+        <div><label for="c-bedrooms">Bedrooms</label><select id="c-bedrooms"><option value="0">Studio</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></div>
+        <div class="full"><label for="c-guests">Guests: <b id="v-guests"></b></label><input type="range" id="c-guests" min="1" max="8" step="1" value="2"></div>
+      </div>
+      <div class="prices">
+        <div class="price"><div class="t">A normal October night</div><div class="v" id="p-normal"></div></div>
+        <div class="price wiesn"><div class="t">An Oktoberfest night</div><div class="v" id="p-wiesn"></div></div>
+      </div>
+      <div class="fine" id="c-fine"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <h2>How full is Munich?</h2>
+    <p class="sub">Share of active listings unavailable each night, as of 25 September 2026. Gold = Oktoberfest nights.</p>
+    <div id="occ"></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>What guests talk about</h2>
+      <p class="sub">Share of reviews mentioning each theme, by review language</p>
+      <div class="langs" id="langs"></div>
+      <div id="themes"></div>
+    </div>
+    <div class="card">
+      <h2>Who reviews: language mix over time</h2>
+      <p class="sub">Share of reviews per year. COVID (2020-21) briefly made Munich's guests mostly German.</p>
+      <div id="mix"></div>
+      <p class="fine">Language detected automatically with py3langid. Themes use keyword lists in each language, checked by hand.</p>
+    </div>
+  </div>
+
+  <footer>
+    Built by <a href="https://github.com/hakowxy">Xinyang Ma</a> with Python, statsmodels and Plotly.
+    Data: <a href="https://insideairbnb.com/">Inside Airbnb</a>, Munich, 25-26 Sep 2026 (CC BY 4.0).
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const n0 = (x) => Math.round(x).toLocaleString("en");
+const pct = (x, d = 0) => (x * 100).toFixed(d) + "%";
+const LANG_COLORS = { de: "#78716c", en: "#2563eb", fr: "#db2777", zh: "#ea580c", es: "#16a34a", it: "#0d9488" };
+const LANG_LABELS = { de: "German", en: "English", fr: "French", zh: "Chinese", es: "Spanish", it: "Italian" };
+let D, GEO, state = { mapKey: "active_listings", langs: ["de", "en", "fr", "zh"] };
+const cfg = { displayModeBar: false, responsive: true };
+const base = (extra = {}) => ({
+  paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", font: { color: css("--text"), size: 12 },
+  margin: { l: 44, r: 10, t: 10, b: 36 }, showlegend: false, ...extra,
+});
+const axis = (extra = {}) => ({ gridcolor: css("--grid"), zeroline: false, fixedrange: true, ...extra });
+
+Promise.all([fetch("data.json").then((r) => r.json()), fetch("districts.geojson").then((r) => r.json())]).then(([data, geo]) => {
+  D = data; GEO = geo;
+  const names = Object.keys(D.districts).sort();
+  $("c-district").innerHTML = names.map((n) => `<option>${n}</option>`).join("");
+  $("c-district").value = "Maxvorstadt";
+  ["c-district", "c-type", "c-bedrooms", "c-guests"].forEach((id) => $(id).addEventListener("input", calc));
+  [...$("map-toggle").children].forEach((b) => b.onclick = () => { state.mapKey = b.dataset.k; drawMap(); });
+  $("langs").innerHTML = Object.entries(D.languages.names).map(([k, v]) =>
+    `<label style="color:${LANG_COLORS[k]}"><input type="checkbox" value="${k}" checked>${v} <small>(${n0(D.languages.counts[k])})</small></label>`).join("");
+  $("langs").querySelectorAll("input").forEach((i) => i.onchange = () => {
+    state.langs = [...$("langs").querySelectorAll("input:checked")].map((x) => x.value); drawThemes();
+  });
+  checkModel();
+  render();
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+});
+
+function render() {
+  const occ = D.occupancy;
+  const wiesnNights = occ.date.map((d, i) => [d, occ.share[i]]).filter(([d]) => d < occ.wiesn_end);
+  const avg = (a) => a.reduce((s, [, v]) => s + v, 0) / a.length;
+  const after = occ.date.map((d, i) => [d, occ.share[i]]).filter(([d]) => d >= "2026-10-07" && d <= "2026-10-31");
+  $("k-premium").textContent = `+${pct(D.model.premium)}`;
+  $("k-occ").textContent = pct(avg(wiesnNights));
+  $("n-occ").textContent = `vs ${pct(avg(after))} for the rest of October`;
+  $("k-active").textContent = n0(D.headline.active);
+  $("n-active").textContent = `of ${n0(D.headline.listings)} listings reviewed in the past year`;
+  $("k-reviews").textContent = (D.headline.reviews / 1000).toFixed(0) + "k";
+  drawMap(); drawOcc(); drawThemes(); drawMix(); calc();
+}
+
+function lerpColor(a, b, t) {
+  const h = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+  const [x, y] = [h(a), h(b)];
+  return "#" + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, "0")).join("");
+}
+
+// Draws the districts as filled polygons on plain axes, so no map tiles or world files are fetched.
+function drawMap() {
+  [...$("map-toggle").children].forEach((b) => b.classList.toggle("on", b.dataset.k === state.mapKey));
+  const key = state.mapKey;
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const [c0, c1] = key === "normal_price" ? (dark ? ["#3b2a12", "#f59e0b"] : ["#fef3c7", "#b45309"])
+                                          : (dark ? ["#172036", "#60a5fa"] : ["#dbeafe", "#1d4ed8"]);
+  const values = Object.values(D.districts).map((d) => d[key]);
+  const lo = Math.min(...values), hi = Math.max(...values);
+  const fmt = { active_listings: (v) => n0(v), normal_price: (v) => `€${n0(v)}`, entire_share: (v) => pct(v) }[key];
+  const traces = [];
+  GEO.features.forEach((f) => {
+    const name = f.properties.neighbourhood, d = D.districts[name] || {};
+    const polys = f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [f.geometry.coordinates];
+    const color = d[key] === undefined ? css("--light") : lerpColor(c0, c1, (d[key] - lo) / (hi - lo || 1));
+    const text = `<b>${name}</b><br>${n0(d.active_listings || 0)} active listings<br>Typical night €${n0(d.normal_price || 0)}<br>${pct(d.entire_share || 0)} whole flats`;
+    polys.forEach((poly) => traces.push({
+      type: "scatter", mode: "lines", x: poly[0].map((p) => p[0]), y: poly[0].map((p) => p[1]),
+      fill: "toself", fillcolor: color, line: { color: css("--card"), width: 1 },
+      hoveron: "fills", text, hoverinfo: "text", name,
+    }));
+  });
+  traces.push({
+    type: "scatter", mode: "markers", x: [null], y: [null], hoverinfo: "skip",
+    marker: { color: [lo, hi], cmin: lo, cmax: hi, colorscale: [[0, c0], [1, c1]], showscale: true,
+              colorbar: { thickness: 10, len: 0.7, tickfont: { color: css("--muted") },
+                          tickformat: key === "entire_share" ? ".0%" : ",.0f", tickprefix: key === "normal_price" ? "€" : "" } },
+  });
+  Plotly.react("map", traces, base({
+    margin: { l: 0, r: 0, t: 0, b: 0 }, hovermode: "closest",
+    xaxis: { visible: false, fixedrange: true, scaleanchor: "y", scaleratio: Math.cos(48.14 * Math.PI / 180) },
+    yaxis: { visible: false, fixedrange: true },
+  }), cfg);
+}
+
+function drawOcc() {
+  const o = D.occupancy;
+  Plotly.react("occ", [{
+    type: "bar", x: o.date, y: o.share,
+    marker: { color: o.date.map((d) => d < o.wiesn_end ? css("--accent") : css("--light")) },
+    hovertemplate: "%{x|%a %d %b}<br>%{y:.0%} unavailable<extra></extra>",
+  }], base({ xaxis: axis({ tickformat: "%d %b" }), yaxis: axis({ tickformat: ".0%", range: [0.3, 1] }), bargap: 0.15 }), cfg);
+}
+
+function drawThemes() {
+  const L = D.languages, themes = Object.keys(L.themes).reverse();
+  const traces = state.langs.map((lang) => ({
+    type: "bar", orientation: "h", name: L.names[lang], y: themes.map((t) => L.themes[t]), x: themes.map((t) => L.rates[lang][t]),
+    marker: { color: LANG_COLORS[lang] }, hovertemplate: `${L.names[lang]}: %{x:.1%}<extra>%{y}</extra>`,
+  }));
+  Plotly.react("themes", traces, base({
+    barmode: "group", bargap: 0.25, margin: { l: 130, r: 10, t: 4, b: 30 },
+    xaxis: axis({ tickformat: ".0%" }), yaxis: axis({ automargin: true }),
+  }), cfg);
+}
+
+function drawMix() {
+  const m = D.languages.mix;
+  const traces = ["en", "de", "fr", "es", "it", "zh"].map((l) => ({
+    type: "scatter", mode: "lines+markers", name: LANG_LABELS[l], x: m.year, y: m[l],
+    line: { color: LANG_COLORS[l], width: l === "en" || l === "de" ? 2.5 : 1.8 }, marker: { size: 4 },
+    yaxis: l === "en" || l === "de" ? "y" : "y2",
+    hovertemplate: `${LANG_LABELS[l]} %{x}: %{y:.1%}<extra></extra>`,
+  }));
+  Plotly.react("mix", traces, base({
+    showlegend: true, legend: { orientation: "h", y: 1.15, x: 0, font: { size: 11 } },
+    margin: { l: 44, r: 10, t: 30, b: 30 },
+    xaxis: axis({ dtick: 2, anchor: "y2" }),
+    // Two stacked panels sharing the year axis: the big two on top, smaller languages below.
+    yaxis: axis({ tickformat: ".0%", domain: [0.52, 1] }),
+    yaxis2: axis({ tickformat: ".0%", domain: [0, 0.44], rangemode: "tozero" }),
+    shapes: [{ type: "rect", xref: "x", yref: "paper", x0: 2019.5, x1: 2021.5, y0: 0, y1: 1, fillcolor: css("--grid"), line: { width: 0 }, layer: "below" }],
+  }), cfg);
+}
+
+// Rebuilds the regression's linear predictor from its coefficient names.
+function logPrice(o) {
+  const p = D.model.params, g = (k) => p[k] || 0;
+  let y = g("Intercept") + g(`C(neighbourhood_cleansed)[T.${o.district}]`);
+  if (o.room_type !== "Entire home/apt") y += g(`C(room_type)[T.${o.room_type}]`);
+  if (o.wiesn) y += g("wiesn[T.True]");
+  if (o.weekend) y += g("weekend_checkin[T.True]");
+  y += g("np.log(accommodates)") * Math.log(o.guests) + g("bedrooms") * o.bedrooms;
+  y += g("review_scores_rating") * o.rating + g("np.log1p(number_of_reviews)") * Math.log1p(o.reviews) + g("nights") * o.nights;
+  return y;
+}
+
+function checkModel() {
+  const worst = Math.max(...D.model.reference.map((r) => Math.abs(Math.exp(logPrice(r)) / r.expected - 1)));
+  if (worst > 1e-3) console.error("Dashboard model differs from statsmodels by", worst);
+}
+
+function calc() {
+  const guests = +$("c-guests").value;
+  $("v-guests").textContent = guests;
+  const o = { district: $("c-district").value, room_type: $("c-type").value, guests, bedrooms: +$("c-bedrooms").value,
+              rating: D.model.rating_median, reviews: D.model.reviews_median, nights: 3, weekend: false };
+  const price = (w) => Math.exp(logPrice({ ...o, wiesn: w })) * D.model.smearing;
+  $("p-normal").textContent = `€${n0(price(false))}`;
+  $("p-wiesn").textContent = `€${n0(price(true))}`;
+  $("c-fine").textContent = `Assumes a 3-night weekday stay and a typical rating (${D.model.rating_median}) and review count (${D.model.reviews_median}). `
+    + `The model explains ${pct(D.model.r2)} of price differences, so individual listings can be far off. Treat this as a ballpark.`;
+}
+</script>
+</body>
+</html>

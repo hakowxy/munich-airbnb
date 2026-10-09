@@ -1,0 +1,8 @@
+jupyter
+matplotlib>=3.8
+nbconvert
+nbformat
+numpy>=1.26
+pandas>=2.2
+py3langid>=0.3
+statsmodels>=0.14

@@ -1,0 +1,5 @@
+.ipynb_checkpoints/
+__pycache__/
+.DS_Store
+# Raw review text with reviewer names: download from insideairbnb.com to rebuild
+data/raw/reviews.csv.gz
