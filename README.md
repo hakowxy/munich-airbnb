@@ -2,9 +2,9 @@
 
 Inside Airbnb scraped every Munich listing on 25-26 September 2026, in the middle of Oktoberfest. This project uses that timing to measure what the festival does to prices and occupancy, and reads 249,000 guest reviews in German, English, French and Chinese to see what different guests notice.
 
-**[Open the interactive dashboard](https://xinyangma18.github.io/munich-airbnb/)** · **[Read the full analysis](notebooks/analysis.ipynb)**
+**[Open the interactive dashboard](https://hakowxy.github.io/munich-airbnb/)** · **[Read the full analysis](notebooks/analysis.ipynb)**
 
-[![Dashboard preview](images/00_dashboard.png)](https://xinyangma18.github.io/munich-airbnb/)
+[![Dashboard preview](images/00_dashboard.png)](https://hakowxy.github.io/munich-airbnb/)
 
 ## Key findings
 
@@ -71,4 +71,4 @@ python scripts/build_dashboard_data.py
 
 ---
 
-Made by [Xinyang Ma](https://github.com/xinyangma18) · [LinkedIn](https://www.linkedin.com/in/xinyang-m-122844288/)
+Made by [Xinyang Ma](https://github.com/hakowxy) · [LinkedIn](https://www.linkedin.com/in/xinyang-m-122844288/)
